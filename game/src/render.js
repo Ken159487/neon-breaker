@@ -2,7 +2,7 @@
 // the HUD and the menu screens. Drawing only reads the world state; it never
 // changes it, so the same frame can be painted twice for a screenshot.
 
-import { FONT, LEVEL_COUNT, PALETTE } from './config.js';
+import { FONT, HUNT, LEVEL_COUNT, PALETTE, SMASH } from './config.js';
 import { powerColor } from './world.js';
 
 export const SCREEN_TITLE = 'title';
@@ -95,12 +95,25 @@ export function createRenderer(canvas) {
 
   function drawBricks(state) {
     const s = scale();
+    // HUNT: with only a few breakable bricks left, the survivors pulse so
+    // the player can see exactly what is still standing.
+    const hunting =
+      !state.cleared && state.breakableLeft > 0 && state.breakableLeft <= HUNT.remaining;
+    const pulse = hunting ? 0.35 + 0.3 * Math.sin(state.time * 5) : 0;
     for (const brick of state.bricks) {
       if (!brick.alive) continue;
       const color = brick.unbreakable ? PALETTE.unbreakable : brickColorOf(brick);
       roundedPath(ctx, brick.x, brick.y, brick.w, brick.h, 5 * s);
       ctx.fillStyle = color;
       ctx.fill();
+      if (hunting && !brick.unbreakable) {
+        ctx.save();
+        ctx.globalAlpha = pulse;
+        ctx.strokeStyle = PALETTE.gold;
+        ctx.lineWidth = 2.5 * s;
+        ctx.stroke();
+        ctx.restore();
+      }
       ctx.fillStyle = 'rgba(255,255,255,0.28)';
       ctx.fillRect(brick.x + 3 * s, brick.y + 2 * s, brick.w - 6 * s, 3 * s);
       if (brick.unbreakable) {
@@ -179,13 +192,19 @@ export function createRenderer(canvas) {
 
   function drawBalls(state) {
     const s = scale();
+    const smashing = state.smashHits > 0;
     for (const ball of state.balls) {
       if (!ball.stuck && (ball.vx || ball.vy)) {
         const tailX = ball.x - ball.vx * 0.035;
         const tailY = ball.y - ball.vy * 0.035;
         const trail = ctx.createLinearGradient(tailX, tailY, ball.x, ball.y);
-        trail.addColorStop(0, 'rgba(127,231,255,0)');
-        trail.addColorStop(1, 'rgba(127,231,255,0.7)');
+        if (smashing) {
+          trail.addColorStop(0, 'rgba(255,210,62,0)');
+          trail.addColorStop(1, 'rgba(255,210,62,0.8)');
+        } else {
+          trail.addColorStop(0, 'rgba(127,231,255,0)');
+          trail.addColorStop(1, 'rgba(127,231,255,0.7)');
+        }
         ctx.strokeStyle = trail;
         ctx.lineWidth = ball.r * 1.1;
         ctx.lineCap = 'round';
@@ -195,12 +214,20 @@ export function createRenderer(canvas) {
         ctx.stroke();
       }
       ctx.save();
-      ctx.shadowColor = PALETTE.ballGlow;
-      ctx.shadowBlur = 14 * s;
-      ctx.fillStyle = PALETTE.ball;
+      ctx.shadowColor = smashing ? '#ffd23e' : PALETTE.ballGlow;
+      ctx.shadowBlur = (smashing ? 24 : 14) * s;
+      ctx.fillStyle = smashing ? '#ffd23e' : PALETTE.ball;
       ctx.beginPath();
       ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI * 2);
       ctx.fill();
+      if (smashing) {
+        ctx.shadowBlur = 0;
+        ctx.strokeStyle = 'rgba(255,210,62,0.7)';
+        ctx.lineWidth = 2 * s;
+        ctx.beginPath();
+        ctx.arc(ball.x, ball.y, ball.r + 4 * s, 0, Math.PI * 2);
+        ctx.stroke();
+      }
       ctx.restore();
     }
   }
@@ -219,14 +246,37 @@ export function createRenderer(canvas) {
     const pad = 18 * s;
     text('SCORE', pad, 16 * s, 11 * s, PALETTE.muted, 'left', 700);
     text(String(state.score).padStart(6, '0'), pad, 36 * s, 24 * s, PALETTE.text, 'left', 800);
+    // SMASH meter: fills as bricks break; a full meter flashes PRESS X.
+    const meterFull = state.charge >= SMASH.maxCharge;
+    const meterX = pad + 48 * s;
+    const meterW = 96 * s;
+    text('SMASH', pad, 56 * s, 10 * s, meterFull ? PALETTE.gold : PALETTE.muted, 'left', 800);
+    roundedPath(ctx, meterX, 52 * s, meterW, 8 * s, 4 * s);
+    ctx.fillStyle = 'rgba(255,255,255,0.12)';
+    ctx.fill();
+    if (state.charge > 0) {
+      roundedPath(ctx, meterX, 52 * s, Math.max(8 * s, (meterW * state.charge) / SMASH.maxCharge), 8 * s, 4 * s);
+      ctx.fillStyle = PALETTE.gold;
+      ctx.globalAlpha = meterFull ? 0.65 + 0.35 * Math.sin(state.time * 6) : 1;
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+    if (meterFull) {
+      text('PRESS X!', meterX + meterW + 10 * s, 56 * s, 11 * s, PALETTE.gold, 'left', 800, 0.7 + 0.3 * Math.sin(state.time * 6));
+    }
     if (state.streak >= 3) {
-      text(`COMBO x${Math.min(state.streak, 10)}`, pad, 60 * s, 13 * s, PALETTE.gold, 'left', 800);
+      text(`COMBO x${Math.min(state.streak, 10)}`, pad, 76 * s, 13 * s, PALETTE.gold, 'left', 800);
     }
     text('BEST', width / 2, 16 * s, 11 * s, PALETTE.muted, 'center', 700);
     text(String(Math.max(ui.best, state.score)).padStart(6, '0'), width / 2, 36 * s, 24 * s, PALETTE.text, 'center', 800);
     text(`LEVEL ${state.level}`, width - pad, 16 * s, 11 * s, PALETTE.muted, 'right', 700);
     for (let i = 0; i < state.lives; i += 1) {
       drawHeart(ctx, width - pad - 10 * s - i * 22 * s, 40 * s, 15 * s, PALETTE.danger);
+    }
+    const hunting =
+      !state.cleared && state.breakableLeft > 0 && state.breakableLeft <= HUNT.remaining;
+    if (hunting) {
+      text(`HUNT — ${state.breakableLeft} LEFT`, width - pad, 80 * s, 12 * s, PALETTE.gold, 'right', 800);
     }
     const timers = [];
     if (state.paddle.wideTimer > 0) timers.push(`WIDE ${Math.ceil(state.paddle.wideTimer)}s`);
@@ -292,7 +342,9 @@ export function createRenderer(canvas) {
           { text: 'Break every brick. Don\'t drop the ball.', size: 16 * s, color: PALETTE.text, weight: 600, gap: 14 },
           { text: 'Move: mouse or ← → arrow keys', size: 14 * s, color: PALETTE.muted, weight: 600, gap: 2 },
           { text: 'Launch / start: Space or click     Pause: P     Sound: M', size: 14 * s, color: PALETTE.muted, weight: 600, gap: 2 },
-          { text: 'Catch W (wide), M (multiball), S (slow), + (extra life)', size: 14 * s, color: PALETTE.muted, weight: 600, gap: 14 },
+          { text: 'Catch W (wide), M (multiball), S (slow), + (extra life)', size: 14 * s, color: PALETTE.muted, weight: 600, gap: 2 },
+          { text: 'Break bricks to charge SMASH — press X to blast through bricks & steel', size: 14 * s, color: PALETTE.gold, weight: 600, gap: 2 },
+          { text: 'Last bricks left? HUNT guides your ball to them', size: 14 * s, color: PALETTE.muted, weight: 600, gap: 14 },
           { text: `BEST  ${String(ui.best).padStart(6, '0')}`, size: 15 * s, color: PALETTE.gold, gap: 10 },
           { text: 'CLICK OR PRESS SPACE TO START', size: 16 * s, color: PALETTE.text, alpha: blinkAlpha(state), gap: 0 },
         ],

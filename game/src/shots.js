@@ -5,8 +5,9 @@
 
 import { STEP } from './config.js';
 
-/** The paddle steers toward `targetX`; the ball is always launched. */
-function simulate(world, seconds, aim) {
+/** The paddle steers toward `targetX`; the ball is always launched. When
+ *  `useSmash` is set, a full SMASH meter is spent as soon as it fills. */
+function simulate(world, seconds, aim, useSmash) {
   const steps = Math.round(seconds / STEP);
   for (let i = 0; i < steps; i += 1) {
     const state = world.state;
@@ -20,7 +21,7 @@ function simulate(world, seconds, aim) {
       }
       targetX = aim(lowest, state);
     }
-    world.step(STEP, { direction: 0, pointerX: targetX, confirm: true });
+    world.step(STEP, { direction: 0, pointerX: targetX, confirm: true, smash: Boolean(useSmash) });
   }
 }
 
@@ -85,11 +86,15 @@ export function stageShot(name, world) {
       simulate(world, seconds, goodAim);
       const state = world.state;
       if (!state.over && !state.cleared && state.score > 0 && state.balls.length > 0) {
+        // Show the new mechanic in action: a full meter is spent here, so
+        // the captured frame has a gold smash ball and a spent meter.
+        world.trySmash();
         return { screen: 'play' };
       }
     }
     world.fullReset();
     simulate(world, 6, goodAim);
+    world.trySmash();
     return { screen: 'play' };
   }
   // 'win': play the whole game with a skilled aim until it is won. The judge
@@ -114,7 +119,7 @@ export function stageShot(name, world) {
         }
         targetX = winAim(lowest, state);
       }
-      world.step(STEP, { direction: 0, pointerX: targetX, confirm: true });
+      world.step(STEP, { direction: 0, pointerX: targetX, confirm: true, smash: state.charge >= 100 });
       steps += 1;
     }
     if (!world.state.won) {
@@ -141,7 +146,7 @@ export function stageShot(name, world) {
           }
           targetX = winAim(lowest, state);
         }
-        world.step(STEP, { direction: 0, pointerX: targetX, confirm: true });
+        world.step(STEP, { direction: 0, pointerX: targetX, confirm: true, smash: state.charge >= 100 });
         guard += 1;
       }
     }
@@ -176,5 +181,9 @@ export function stageShot(name, world) {
       guard += 1;
     }
   }
+  // The last lost ball bursts red particles over the paddle; frozen in the
+  // staged frame, one reads as a ball remnant sitting on the paddle (v1
+  // rough edge). Clear them so the game-over frame is clean. Staging only.
+  world.state.particles.length = 0;
   return { screen: 'over' };
 }

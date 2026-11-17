@@ -7,6 +7,7 @@ export const ACTION_CONFIRM = 1;
 export const ACTION_PAUSE = 2;
 export const ACTION_MUTE = 4;
 export const ACTION_RESTART = 8;
+export const ACTION_SMASH = 16;
 
 const LEFT_KEYS = new Set(['ArrowLeft', 'KeyA']);
 const RIGHT_KEYS = new Set(['ArrowRight', 'KeyD']);
@@ -14,6 +15,7 @@ const CONFIRM_KEYS = new Set(['Space', 'Enter']);
 const PAUSE_KEYS = new Set(['KeyP', 'Escape']);
 const MUTE_KEYS = new Set(['KeyM']);
 const RESTART_KEYS = new Set(['KeyR']);
+const SMASH_KEYS = new Set(['KeyX']);
 
 export function createInput(canvas) {
   let leftHeld = false;
@@ -33,6 +35,8 @@ export function createInput(canvas) {
       if (!event.repeat) actions |= ACTION_MUTE;
     } else if (RESTART_KEYS.has(event.code)) {
       if (!event.repeat) actions |= ACTION_RESTART;
+    } else if (SMASH_KEYS.has(event.code)) {
+      if (!event.repeat) actions |= ACTION_SMASH;
     } else return;
     event.preventDefault();
   });

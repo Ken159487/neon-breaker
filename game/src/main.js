@@ -4,12 +4,13 @@
 
 import { BEST_KEY, LEVEL_COUNT, SCORE, STEP } from './config.js';
 import { createAudio } from './audio.js';
-import { ACTION_CONFIRM, ACTION_MUTE, ACTION_PAUSE, ACTION_RESTART, createInput } from './input.js';
+import { ACTION_CONFIRM, ACTION_MUTE, ACTION_PAUSE, ACTION_RESTART, ACTION_SMASH, createInput } from './input.js';
 import { createRandom } from './random.js';
 import { createRenderer, SCREEN_CLEAR, SCREEN_OVER, SCREEN_PAUSED, SCREEN_PLAY, SCREEN_TITLE, SCREEN_WIN } from './render.js';
 import { stageShot } from './shots.js';
 import {
   EVENT_BRICK,
+  EVENT_CHARGE_FULL,
   EVENT_CLEAR,
   EVENT_CRACK,
   EVENT_LAUNCH,
@@ -17,6 +18,7 @@ import {
   EVENT_OVER,
   EVENT_PADDLE,
   EVENT_POWER,
+  EVENT_SMASH,
   EVENT_WALL,
   EVENT_WIN,
   createWorld,
@@ -104,6 +106,14 @@ function handleEvents(events) {
     audio.brick(1, world.state.streak);
     hitStop = Math.max(hitStop, 0.05);
   }
+  if (events & EVENT_SMASH) {
+    audio.smash();
+    hitStop = Math.max(hitStop, 0.08);
+  }
+  if (events & EVENT_CHARGE_FULL) {
+    audio.chargeFull();
+    announce('Smash ready. Press X to smash through bricks and steel.');
+  }
   if (events & EVENT_CRACK) audio.brick(2, world.state.streak);
   if (events & EVENT_POWER) audio.powerUp();
   if (events & EVENT_LOSE) {
@@ -157,6 +167,14 @@ if (shotName) {
       announce(muted ? 'Sound off.' : 'Sound on.');
     }
     if (actions & ACTION_CONFIRM) audio.unlock();
+    // X arms the smash ball; so does a click mid-rally with a full meter
+    // (a click while serving still just launches the ball).
+    const smashQueued =
+      Boolean(actions & ACTION_SMASH) ||
+      (Boolean(actions & ACTION_CONFIRM) &&
+        screen === SCREEN_PLAY &&
+        !world.state.serving &&
+        world.state.charge >= 100);
     if (screen === SCREEN_TITLE) {
       if (actions & ACTION_CONFIRM) {
         audio.click();
@@ -213,6 +231,7 @@ if (shotName) {
           direction: input.direction(),
           pointerX,
           confirm: Boolean(actions & ACTION_CONFIRM),
+          smash: smashQueued,
         });
         actions = 0;
         handleEvents(events);

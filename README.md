@@ -30,6 +30,7 @@ npx --yes serve game
 
 - **Move the paddle:** mouse, or `←` / `→` (also `A` / `D`)
 - **Launch the ball / start / confirm:** `Space`, `Enter`, or click
+- **SMASH:** `X` (or click mid-rally) when the meter is full
 - **Pause:** `P` or `Esc` (auto-pauses when the tab is hidden)
 - **Sound on/off:** `M`
 - **Restart from the pause / game-over screen:** `R`
@@ -41,6 +42,17 @@ npx --yes serve game
 - **3 lives** (up to 5 with extra-life drops). Lose a ball, lose a life.
 - **Power-ups** fall from broken bricks: `W` wide paddle, `M` multiball,
   `S` slow ball, `+` extra life.
+- **SMASH:** breaking bricks charges a meter (12 per break, 4 per crack).
+  Press `X` with a full meter and the ball turns gold for its next 4 brick
+  hits: it pierces straight through bricks instead of bouncing, and it is
+  the only thing that can break steel (flat +100, no streak). Losing the
+  ball wastes an armed smash, so aim it at a wall or a cluster — or save it
+  for the steel rows in levels 3 and 5.
+- **HUNT:** with 5 or fewer breakable bricks left, the survivors pulse gold,
+  the ball bends toward the lowest one on its way up, and paddle bounces
+  aim at it too — so the last-brick grind ends instead of
+  dragging on. It never steers a falling ball, so saves still depend on
+  the paddle.
 - **Score:** bricks are worth 50–200 points by toughness, plus a streak bonus
   for breaking bricks without dropping a ball. A level-clear bonus rewards
   finishing fast with lives to spare. The best score is kept in the browser.
@@ -52,19 +64,20 @@ npx --yes serve game
 
 ## Screenshots
 
-`?shot=start|play|end` stages a fixed-seed scene for screenshots (see
+`?shot=start|play|end|win` stages a fixed-seed scene for screenshots (see
 `shots.json`); the page sets `window.__shotReady` when the frame is painted:
 
 - `1-start.jpg` — title screen over the animated demo game
 - `2-play.jpg` — mid-rally play with a score on the board
 - `3-end.jpg` — game-over screen after a lost game
+- `4-win.jpg` — win screen after clearing all 5 levels
 
 ## Layout
 
 ```
 main.ts            the build program: copies game/ + screenshots/ to the
                    output directory and writes dossier.json
-shots.json         the three screenshot scenes
+shots.json         the four screenshot scenes
 game/
   index.html       the page (canvas + status line, no network references)
   src/

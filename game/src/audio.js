@@ -88,6 +88,14 @@ export function createAudio() {
       tone({ frequency: 523, duration: 0.09, type: 'sine', volume: 0.4 });
       tone({ frequency: 784, duration: 0.12, type: 'sine', volume: 0.4, delay: 0.08 });
     },
+    chargeFull() {
+      tone({ frequency: 660, duration: 0.08, type: 'sine', volume: 0.35 });
+      tone({ frequency: 990, duration: 0.12, type: 'sine', volume: 0.35, delay: 0.07 });
+    },
+    smash() {
+      tone({ frequency: 880, endFrequency: 110, duration: 0.22, type: 'sawtooth', volume: 0.4 });
+      tone({ frequency: 1760, duration: 0.06, type: 'square', volume: 0.2 });
+    },
     loseLife() {
       tone({ frequency: 320, endFrequency: 90, duration: 0.4, type: 'sawtooth', volume: 0.35 });
     },
