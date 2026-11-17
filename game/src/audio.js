@@ -1,11 +1,16 @@
 // Synthesised sound effects through WebAudio: no audio file is loaded, so
 // the game stays silent on the network and works fully offline. The context
 // is created on the first user gesture (browsers block audio before that) and
-// every play call is a no-op while it is suspended or muted.
+// every play call is a no-op while it is suspended or muted. The background
+// music loop lives in music.js and runs through the same master gain, so one
+// mute silences effects and music together.
+
+import { createMusic } from './music.js';
 
 export function createAudio() {
   let context = null;
   let master = null;
+  let music = null;
   let muted = false;
   try {
     muted = window.localStorage.getItem('neon-breaker.muted') === '1';
@@ -24,6 +29,8 @@ export function createAudio() {
     master = context.createGain();
     master.gain.value = 0.32;
     master.connect(context.destination);
+    music = createMusic(context, master);
+    music.setMuted(muted);
     return context;
   }
 
@@ -57,12 +64,38 @@ export function createAudio() {
     },
     toggleMute() {
       muted = !muted;
+      if (music) music.setMuted(muted);
       try {
         window.localStorage.setItem('neon-breaker.muted', muted ? '1' : '0');
       } catch {
         // Storage can be off: the mute then lasts this visit only.
       }
       return muted;
+    },
+    /** Start the background loop at the given level (1–5). No-op before the first gesture. */
+    startMusic(level) {
+      const ctx = ensureContext();
+      if (!ctx || !music) return;
+      music.start(level);
+    },
+    /** Stop the loop and silence any ringing notes. */
+    stopMusic() {
+      if (music) music.stop();
+    },
+    /** Later levels sound busier; safe to call while the loop is playing. */
+    setMusicLevel(level) {
+      if (music) music.setLevel(level);
+    },
+    /** Test hook: playing state, level, notes scheduled, bus gain, context state. */
+    get musicState() {
+      if (!music) return { playing: false, level: 1, notes: 0, busGain: 0, contextState: 'none' };
+      return {
+        playing: music.playing,
+        level: music.level,
+        notes: music.notesScheduled,
+        busGain: music.busGain,
+        contextState: context ? context.state : 'none',
+      };
     },
     click() {
       tone({ frequency: 660, duration: 0.05, type: 'sine', volume: 0.25 });

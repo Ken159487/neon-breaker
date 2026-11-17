@@ -57,8 +57,9 @@ npx --yes serve game
   for breaking bricks without dropping a ball. A level-clear bonus rewards
   finishing fast with lives to spare. The best score is kept in the browser.
 - **Feel:** particles on every break, screen shake on losing a ball, a ball
-  trail, floating score texts, and synthesised WebAudio sound effects (no
-  audio files) — all generated in code.
+  trail, floating score texts, synthesised WebAudio sound effects, and an
+  original synthwave background loop (Am–F–C–G at 112 BPM, layers joining
+  as the level rises) — all generated in code, no audio files.
 - **Screens:** animated title (the paddle plays itself behind it), pause,
   level-clear, game-over and win screens, all with keyboard/click restart.
 
@@ -84,7 +85,8 @@ game/
     config.js      tuning numbers, palette, storage keys
     random.js      seeded random numbers
     input.js       keyboard + pointer input
-    audio.js       synthesised WebAudio sound effects
+    audio.js       synthesised WebAudio sound effects + music loop wiring
+    music.js       original synthwave loop (WebAudio scheduler, no files)
     particles.js   bursts and floating score texts
     levels.js      the five brick layouts
     world.js       the simulation: paddle, balls, bricks, power-ups

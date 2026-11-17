@@ -35,6 +35,9 @@ const world = createWorld(random);
 const renderer = createRenderer(canvas);
 const input = createInput(canvas);
 const audio = createAudio();
+// Test hook: the browser QA reads music state (playing, level, notes
+// scheduled, bus gain) through this, the way ?shot= drives screenshots.
+window.__neonAudio = audio;
 
 let screen = SCREEN_TITLE;
 let best = readBest();
@@ -73,9 +76,16 @@ function updateBest() {
 }
 
 function setScreen(next, announcement) {
+  // The music follows the game: it starts whenever play starts (at the
+  // current level, so later levels sound busier) and stops the moment play
+  // ends — pause, level clear, game over, win, or the tab hiding.
+  const leavingPlay = screen === SCREEN_PLAY && next !== SCREEN_PLAY;
+  const enteringPlay = next === SCREEN_PLAY && screen !== SCREEN_PLAY;
   screen = next;
   canvas.style.cursor = next === SCREEN_PLAY ? 'none' : 'default';
   if (announcement) announce(announcement);
+  if (leavingPlay) audio.stopMusic();
+  if (enteringPlay) audio.startMusic(world.state.level);
 }
 
 function resize() {
