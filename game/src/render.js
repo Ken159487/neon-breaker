@@ -267,8 +267,13 @@ export function createRenderer(canvas) {
     if (state.streak >= 3) {
       text(`COMBO x${Math.min(state.streak, 10)}`, pad, 76 * s, 13 * s, PALETTE.gold, 'left', 800);
     }
-    text('BEST', width / 2, 16 * s, 11 * s, PALETTE.muted, 'center', 700);
-    text(String(Math.max(ui.best, state.score)).padStart(6, '0'), width / 2, 36 * s, 24 * s, PALETTE.text, 'center', 800);
+    // The hero title pill (staged shot 1) takes the top centre, so the
+    // BEST readout steps aside there; the real title screen never sets
+    // heroTitle and is untouched.
+    if (!state.heroTitle) {
+      text('BEST', width / 2, 16 * s, 11 * s, PALETTE.muted, 'center', 700);
+      text(String(Math.max(ui.best, state.score)).padStart(6, '0'), width / 2, 36 * s, 24 * s, PALETTE.text, 'center', 800);
+    }
     text(`LEVEL ${state.level}`, width - pad, 16 * s, 11 * s, PALETTE.muted, 'right', 700);
     for (let i = 0; i < state.lives; i += 1) {
       drawHeart(ctx, width - pad - 10 * s - i * 22 * s, 40 * s, 15 * s, PALETTE.danger);
@@ -315,6 +320,32 @@ export function createRenderer(canvas) {
     }
   }
 
+  function drawHeroTitle() {
+    // The staged hero frame (see shots.js): the title shrinks to a slim
+    // pill at the top so the live SMASH moment underneath stays the
+    // picture, with the one instruction line the frame needs. Only drawn
+    // when staging set state.heroTitle; the real title screen is untouched.
+    const s = scale();
+    const panelW = Math.min(520 * s, width * 0.8);
+    const titleSize = 26 * s;
+    const lineSize = 13 * s;
+    const panelH = titleSize + lineSize + 30 * s;
+    const x = (width - panelW) / 2;
+    const y = 6 * s;
+    roundedPath(ctx, x, y, panelW, panelH, 12 * s);
+    ctx.fillStyle = PALETTE.panel;
+    ctx.fill();
+    ctx.strokeStyle = PALETTE.panelEdge;
+    ctx.lineWidth = 1.5 * s;
+    ctx.stroke();
+    ctx.save();
+    ctx.shadowColor = PALETTE.paddle;
+    ctx.shadowBlur = 18 * s;
+    text('NEON BREAKER', width / 2, y + titleSize * 0.95, titleSize, PALETTE.paddle, 'center', 800);
+    ctx.restore();
+    text('Break every brick — charge SMASH, press X to shatter steel', width / 2, y + titleSize * 1.35 + lineSize * 0.75, lineSize, PALETTE.gold, 'center', 600);
+  }
+
   function blinkAlpha(state) {
     return 0.7 + 0.3 * Math.sin(state.time * 4);
   }
@@ -336,20 +367,25 @@ export function createRenderer(canvas) {
     drawTexts(state);
     ctx.restore();
     if (screen === SCREEN_TITLE) {
-      drawOverlay(
-        [
-          { text: 'NEON BREAKER', size: 52 * s, color: PALETTE.paddle, glow: true, gap: 10 },
-          { text: 'Break every brick. Don\'t drop the ball.', size: 16 * s, color: PALETTE.text, weight: 600, gap: 14 },
-          { text: 'Move: mouse or ← → arrow keys', size: 14 * s, color: PALETTE.muted, weight: 600, gap: 2 },
-          { text: 'Launch / start: Space or click     Pause: P     Sound: M', size: 14 * s, color: PALETTE.muted, weight: 600, gap: 2 },
-          { text: 'Catch W (wide), M (multiball), S (slow), + (extra life)', size: 14 * s, color: PALETTE.muted, weight: 600, gap: 2 },
-          { text: 'Break bricks to charge SMASH — press X to blast through bricks & steel', size: 14 * s, color: PALETTE.gold, weight: 600, gap: 2 },
-          { text: 'Last bricks left? HUNT guides your ball to them', size: 14 * s, color: PALETTE.muted, weight: 600, gap: 14 },
-          { text: `BEST  ${String(ui.best).padStart(6, '0')}`, size: 15 * s, color: PALETTE.gold, gap: 10 },
-          { text: 'CLICK OR PRESS SPACE TO START', size: 16 * s, color: PALETTE.text, alpha: blinkAlpha(state), gap: 0 },
-        ],
-        0.86,
-      );
+      if (state.heroTitle) {
+        drawHud(state, ui);
+        drawHeroTitle();
+      } else {
+        drawOverlay(
+          [
+            { text: 'NEON BREAKER', size: 52 * s, color: PALETTE.paddle, glow: true, gap: 10 },
+            { text: 'Break every brick. Don\'t drop the ball.', size: 16 * s, color: PALETTE.text, weight: 600, gap: 14 },
+            { text: 'Move: mouse or ← → arrow keys', size: 14 * s, color: PALETTE.muted, weight: 600, gap: 2 },
+            { text: 'Launch / start: Space or click     Pause: P     Sound: M', size: 14 * s, color: PALETTE.muted, weight: 600, gap: 2 },
+            { text: 'Catch W (wide), M (multiball), S (slow), + (extra life)', size: 14 * s, color: PALETTE.muted, weight: 600, gap: 2 },
+            { text: 'Break bricks to charge SMASH — press X to blast through bricks & steel', size: 14 * s, color: PALETTE.gold, weight: 600, gap: 2 },
+            { text: 'Last bricks left? HUNT guides your ball to them', size: 14 * s, color: PALETTE.muted, weight: 600, gap: 14 },
+            { text: `BEST  ${String(ui.best).padStart(6, '0')}`, size: 15 * s, color: PALETTE.gold, gap: 10 },
+            { text: 'CLICK OR PRESS SPACE TO START', size: 16 * s, color: PALETTE.text, alpha: blinkAlpha(state), gap: 0 },
+          ],
+          0.86,
+        );
+      }
     } else if (screen === SCREEN_PAUSED) {
       drawHud(state, ui);
       drawOverlay(
