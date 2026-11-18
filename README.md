@@ -68,10 +68,10 @@ npx --yes serve game
 `?shot=start|play|end|win` stages a fixed-seed scene for screenshots (see
 `shots.json`); the page sets `window.__shotReady` when the frame is painted:
 
-- `1-start.jpg` — title screen over the animated demo game
-- `2-play.jpg` — mid-rally play with a score on the board
-- `3-end.jpg` — game-over screen after a lost game
-- `4-win.jpg` — win screen after clearing all 5 levels
+![Title screen over the animated demo game](screenshots/1-start.jpg)
+![Mid-rally play with a score on the board](screenshots/2-play.jpg)
+![Game-over screen after a lost game](screenshots/3-end.jpg)
+![Win screen after clearing all 5 levels](screenshots/4-win.jpg)
 
 ## Layout
 
